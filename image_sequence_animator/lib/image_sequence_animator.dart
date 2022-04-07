@@ -10,11 +10,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-
+import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 
-typedef CacheProgressIndicatorBuilder = Widget Function(BuildContext context, double progress);
-typedef ImageSequenceProcessCallback = void Function(ImageSequenceAnimatorState _imageSequenceAnimator);
+typedef CacheProgressIndicatorBuilder = Widget Function(
+    BuildContext context, double progress);
+typedef ImageSequenceProcessCallback = void Function(
+    ImageSequenceAnimatorState _imageSequenceAnimator);
 
 class ImageSequenceAnimator extends StatefulWidget {
   ///The directory of your image sequence.
@@ -130,15 +132,18 @@ class ImageSequenceAnimator extends StatefulWidget {
   }
 }
 
-class ImageSequenceAnimatorState extends State<ImageSequenceAnimator> with SingleTickerProviderStateMixin {
+class ImageSequenceAnimatorState extends State<ImageSequenceAnimator>
+    with SingleTickerProviderStateMixin {
   AnimationController? _animationController;
   final ValueNotifier<int> _changeNotifier = ValueNotifier<int>(0);
 
   String _folderName;
   String _fileName;
   String _fileFormat;
-  double get _frameCount => _useFullPaths ? widget.fullPaths!.length * 1.0 : widget.frameCount;
-  bool get _useFullPaths => widget.fullPaths != null && widget.fullPaths!.isNotEmpty;
+  double get _frameCount =>
+      _useFullPaths ? widget.fullPaths!.length * 1.0 : widget.frameCount;
+  bool get _useFullPaths =>
+      widget.fullPaths != null && widget.fullPaths!.isNotEmpty;
 
   ///Use this value to check if this [ImageSequenceAnimator] is currently looping.
   bool get isLooping => _isLooping;
@@ -166,18 +171,26 @@ class ImageSequenceAnimatorState extends State<ImageSequenceAnimator> with Singl
 
   Timer? _cacheTimer;
   DateTime? _cacheStartDateTime;
-  int get _cacheMillisProgressed => DateTime.now().difference(_cacheStartDateTime!).inMilliseconds;
-  double get _cacheMillisRemaining => _cacheMillisProgressed.toDouble() / _previousCacheFrame.toDouble() * (_frameCount - _previousCacheFrame).toDouble();
-  double get _cacheMillisTotal => _cacheMillisProgressed + _cacheMillisRemaining;
+  int get _cacheMillisProgressed =>
+      DateTime.now().difference(_cacheStartDateTime!).inMilliseconds;
+  double get _cacheMillisRemaining =>
+      _cacheMillisProgressed.toDouble() /
+      _previousCacheFrame.toDouble() *
+      (_frameCount - _previousCacheFrame).toDouble();
+  double get _cacheMillisTotal =>
+      _cacheMillisProgressed + _cacheMillisRemaining;
 
-  bool get isPlaying => _animationController != null && _animationController!.isAnimating;
+  bool get isPlaying =>
+      _animationController != null && _animationController!.isAnimating;
   int get _fpsInMilliseconds => (1.0 / widget.fps * 1000.0).floor();
 
   ///Use this value to get the current time of the animation in frames.
-  double get currentProgress => _animationController == null ? 0.0 : _animationController!.value;
+  double get currentProgress =>
+      _animationController == null ? 0.0 : _animationController!.value;
 
   ///Use this value to get the total time of the animation in frames.
-  double get totalProgress => _animationController == null ? 0.0 : _animationController!.upperBound;
+  double get totalProgress =>
+      _animationController == null ? 0.0 : _animationController!.upperBound;
 
   ///Use this value to get the current time of the animation in milliseconds.
   double get currentTime => currentProgress * _fpsInMilliseconds;
@@ -197,7 +210,11 @@ class ImageSequenceAnimatorState extends State<ImageSequenceAnimator> with Singl
   void animationListener() {
     _changeNotifier.value++;
 
-    if (widget.onPlaying != null) widget.onPlaying!(this);
+    // if (widget.onPlaying != null) {
+    //   setState(() {
+    //     widget.onPlaying(this);
+    //   });
+    // };
   }
 
   void animationStatusListener(AnimationStatus animationStatus) {
@@ -233,9 +250,15 @@ class ImageSequenceAnimatorState extends State<ImageSequenceAnimator> with Singl
 
     if (isLooping) _isBoomerang = false;
 
-    if (_folderName.endsWith("/")) _folderName = _folderName.substring(0, _folderName.indexOf(("/")));
+    if (_folderName.endsWith("/"))
+      _folderName = _folderName.substring(0, _folderName.indexOf(("/")));
     if (_fileFormat.startsWith(".")) _fileFormat = _fileFormat.substring(1);
 
+    if (widget.isOnline) {
+      _isReadyToPlay = true;
+      if (widget.onReadyToPlay != null) widget.onReadyToPlay!(this);
+      if (widget.isAutoPlay) play();
+    }
     if (!widget.isOnline) {
       _isReadyToPlay = true;
       if (widget.onReadyToPlay != null) widget.onReadyToPlay!(this);
@@ -289,7 +312,8 @@ class ImageSequenceAnimatorState extends State<ImageSequenceAnimator> with Singl
   void play({double from: -1.0}) {
     if (!_isReadyToPlay) return;
 
-    if (!_animationController!.isAnimating && widget.onStartPlaying != null) widget.onStartPlaying!(this);
+    if (!_animationController!.isAnimating && widget.onStartPlaying != null)
+      widget.onStartPlaying!(this);
 
     if (from == -1.0)
       _animationController!.forward();
@@ -301,7 +325,8 @@ class ImageSequenceAnimatorState extends State<ImageSequenceAnimator> with Singl
   void rewind({double from: -1.0}) {
     if (!_isReadyToPlay) return;
 
-    if (!_animationController!.isAnimating && widget.onStartPlaying != null) widget.onStartPlaying!(this);
+    if (!_animationController!.isAnimating && widget.onStartPlaying != null)
+      widget.onStartPlaying!(this);
 
     if (from == -1.0)
       _animationController!.reverse();
@@ -359,7 +384,9 @@ class ImageSequenceAnimatorState extends State<ImageSequenceAnimator> with Singl
       _isCacheComplete = true;
 
     if (!_isReadyToPlay) {
-      if ((widget.waitUntilCacheIsComplete && _isCacheComplete) || (!widget.waitUntilCacheIsComplete && _cacheMillisRemaining * 0.85 < totalTime)) {
+      if ((widget.waitUntilCacheIsComplete && _isCacheComplete) ||
+          (!widget.waitUntilCacheIsComplete &&
+              _cacheMillisRemaining * 0.85 < totalTime)) {
         _isReadyToPlay = true;
         if (widget.onReadyToPlay != null) widget.onReadyToPlay!(this);
         if (widget.isAutoPlay) play(from: 0.0);
@@ -376,88 +403,123 @@ class ImageSequenceAnimatorState extends State<ImageSequenceAnimator> with Singl
     if (_useFullPaths) {
       return widget.fullPaths![_previousFrame];
     }
-    return _folderName + "/" + _fileName + _getSuffix((widget.suffixStart + _previousFrame).toString()) + "." + _fileFormat;
+    return _folderName +
+        "/" +
+        _fileName +
+        _getSuffix((widget.suffixStart + _previousFrame).toString()) +
+        "." +
+        _fileFormat;
   }
 
   String _getCacheDirectory() {
     if (_useFullPaths) {
       return widget.fullPaths![_previousCacheFrame];
     }
-    return _folderName + "/" + _fileName + _getSuffix((widget.suffixStart + _previousCacheFrame).toString()) + "." + _fileFormat;
+    return _folderName +
+        "/" +
+        _fileName +
+        _getSuffix((widget.suffixStart + _previousCacheFrame).toString()) +
+        "." +
+        _fileFormat;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.isOnline)
-      return ValueListenableBuilder(
-        builder: (BuildContext context, int change, Widget? cachedChild) {
-          if (_currentOfflineFrame == null || _animationController!.value.floor() != _previousFrame || _colorChanged) {
+    return ValueListenableBuilder(
+      builder: (BuildContext context, int change, Widget? cachedChild) {
+        if (!widget.isOnline)
+          return ValueListenableBuilder(
+            builder: (BuildContext context, int change, Widget? cachedChild) {
+              if (_currentOfflineFrame == null ||
+                  _animationController!.value.floor() != _previousFrame ||
+                  _colorChanged) {
+                _colorChanged = false;
+                _previousFrame = _animationController!.value.floor();
+                if (_previousFrame < _frameCount)
+                  _currentOfflineFrame = Stack(
+                    children: [
+                      Image.memory(
+                        File(_getDirectory()).readAsBytesSync(),
+                        //color: color,
+                        gaplessPlayback: true,
+                      ),
+                    ],
+                  );
+              }
+
+              return _currentOfflineFrame!;
+            },
+            valueListenable: _changeNotifier,
+          );
+        else if (!_isCacheComplete) {
+          if (_currentCachedOnlineFrame == null ||
+              _newCacheFrame != _previousCacheFrame) {
+            _newCacheFrame = _previousCacheFrame;
+            if (_cacheStartDateTime == null)
+              _cacheStartDateTime = DateTime.now();
+
+            _currentCachedOnlineFrame = CachedNetworkImage(
+              imageUrl: _getCacheDirectory(),
+              progressIndicatorBuilder: (context, url, downloadProgress) {
+                return Container(
+                  width: MediaQuery.of(context).size.width,
+                  height: MediaQuery.of(context).size.width,
+                  // child: Center(
+                  //   child: CircularProgressIndicator(
+                  //     value: downloadProgress.progress,
+                  //   ),
+                  // ),
+                );
+              },
+              // progressIndicatorBuilder: (context, url, downloadProgress) {
+              //   if (downloadProgress.progress == null) {
+              //     _cacheTimer?.cancel();
+              //     _cacheTimer =
+              //         Timer(const Duration(milliseconds: 25), () => _cache());
+              //   } else {
+              //     _cacheTimer?.cancel();
+              //     if (downloadProgress.progress == 1.0) _cache();
+              //   }
+              //   if (!_isReadyToPlay &&
+              //       widget.cacheProgressIndicatorBuilder != null)
+              //     return widget.cacheProgressIndicatorBuilder!(
+              //         context, 1.0 - _cacheMillisRemaining / _cacheMillisTotal);
+              //   else
+              //     return Container();
+              // },
+              //color: Colors.transparent,
+            );
+          }
+        } else
+          _currentCachedOnlineFrame = Container();
+        if (_isReadyToPlay) {
+          if (_currentDisplayedOnlineFrame == null ||
+              _newFrame != _previousFrame ||
+              _colorChanged) {
             _colorChanged = false;
             _previousFrame = _animationController!.value.floor();
             if (_previousFrame < _frameCount)
-              _currentOfflineFrame = Image.asset(
-                _getDirectory(),
-                color: color,
-                gaplessPlayback: true,
+              _currentDisplayedOnlineFrame = CachedNetworkImage(
+                imageUrl: _getDirectory(),
+                useOldImageOnUrlChange: _isCacheComplete,
+                fadeOutDuration: const Duration(milliseconds: 0),
+                fadeInDuration: const Duration(milliseconds: 0),
+                // placeholder: (context, url) => CircularProgressIndicator(),
+                // errorWidget: (context, url, error) => Icon(Icons.error),
               );
           }
+        } else
+          _currentDisplayedOnlineFrame = Container();
 
-          return _currentOfflineFrame!;
-        },
-        valueListenable: _changeNotifier,
-      );
-    else
-      return ValueListenableBuilder(
-        builder: (BuildContext context, int change, Widget? cachedChild) {
-          if (!_isCacheComplete) {
-            if (_currentCachedOnlineFrame == null || _newCacheFrame != _previousCacheFrame) {
-              _newCacheFrame = _previousCacheFrame;
-              if (_cacheStartDateTime == null) _cacheStartDateTime = DateTime.now();
-              _currentCachedOnlineFrame = CachedNetworkImage(
-                imageUrl: _getCacheDirectory(),
-                progressIndicatorBuilder: (context, url, downloadProgress) {
-                  if (downloadProgress.progress == null) {
-                    _cacheTimer?.cancel();
-                    _cacheTimer = Timer(const Duration(milliseconds: 25), () => _cache());
-                  } else {
-                    _cacheTimer?.cancel();
-                    if (downloadProgress.progress == 1.0) _cache();
-                  }
-                  if (!_isReadyToPlay && widget.cacheProgressIndicatorBuilder != null)
-                    return widget.cacheProgressIndicatorBuilder!(context, 1.0 - _cacheMillisRemaining / _cacheMillisTotal);
-                  else
-                    return Container();
-                },
-                color: Colors.transparent,
-              );
-            }
-          } else
-            _currentCachedOnlineFrame = Container();
-          if (_isReadyToPlay) {
-            if (_currentDisplayedOnlineFrame == null || _newFrame != _previousFrame || _colorChanged) {
-              _colorChanged = false;
-              _previousFrame = _animationController!.value.floor();
-              if (_previousFrame < _frameCount)
-                _currentDisplayedOnlineFrame = CachedNetworkImage(
-                  imageUrl: _getDirectory(),
-                  color: color,
-                  useOldImageOnUrlChange: _isCacheComplete,
-                  fadeOutDuration: const Duration(milliseconds: 0),
-                  fadeInDuration: const Duration(milliseconds: 0),
-                );
-            }
-          } else
-            _currentDisplayedOnlineFrame = Container();
-
-          return Stack(
-            alignment: Alignment.center,
-            children: [
-              _currentCachedOnlineFrame!,
-              _currentDisplayedOnlineFrame!,
-            ],
-          );
-        },
-        valueListenable: _changeNotifier,
-      );
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            _currentCachedOnlineFrame!,
+            _currentDisplayedOnlineFrame!,
+          ],
+        );
+      },
+      valueListenable: _changeNotifier,
+    );
   }
 }
